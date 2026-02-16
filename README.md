@@ -20,7 +20,7 @@ ai-connectivity
 ## Getting Started
 
 ### Prerequisites
-- Node.js (version 14 or higher)
+- Node.js (version 20 or higher)
 - npm (Node package manager)
 - Google Cloud account with Vertex AI access
 
