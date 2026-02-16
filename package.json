@@ -1,0 +1,16 @@
+{
+  "name": "ai-connectivity",
+  "version": "1.0.0",
+  "description": "A Node.js application that integrates with Google Cloud's Vertex AI for generating responses based on user input",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zzssg/ai-connectivity.git"
+  },
+  "author": "Sergei Ikonnikov <s.v.ikonnikov@gmail.com>",
+  "license": "ISC",
+  "homepage": "https://github.com/zzssg/ai-connectivity#readme"
+}
