@@ -8,13 +8,9 @@ The AI Connectivity project is a Node.js application that integrates with Google
 ai-connectivity
 ├── server.js          # Main entry point of the application
 ├── auth.js            # Middleware for authenticating requests
-├── model-mapper.js    # Maps model names to Vertex AI model names
-├── package.json       # npm configuration file
-├── package-lock.json  # Locks versions of dependencies
 ├── Dockerfile         # Instructions for building a Docker image
 ├── .dockerignore      # Files to ignore when building the Docker image
-├── .env.example       # Example environment variables
-└── README.md          # Documentation for the project
+└── tenant-store.js    # Tenants info storage
 ```
 
 ## Getting Started

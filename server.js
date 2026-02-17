@@ -1,7 +1,12 @@
+import dotenv from "dotenv";
+dotenv.config();
+
 import express from "express";
+import { createLogger } from "./utils.js";
 import { VertexAI } from "@google-cloud/vertexai";
 import { authenticate } from "./auth.js";
-import { mapModel } from "./model-mapper.js";
+
+const log = createLogger(import.meta.url);
 
 const app = express();
 app.use(express.json());
@@ -16,11 +21,14 @@ app.post("/v1/responses", authenticate, async (req, res) => {
     const tenant = req.tenant;
     const { model, input } = req.body;
 
-    const vertexModelName = mapModel(model || tenant.defaultModel, tenant);
-
+    log.info(`Operating with tenant: ${tenant?.id}. Input: ${input}`);
+    const vertexModelName = model ? model : process.env.TENANT_DEFAULT_MODEL;
+    log.info(`Using Vertex AI model: ${vertexModelName}`);
     const generativeModel = vertexAI.getGenerativeModel({
       model: vertexModelName,
     });
+
+    let textPrefix = tenant.systemPrompt ? tenant.systemPrompt + "\n\n" : "";
 
     const result = await generativeModel.generateContent({
       contents: [
@@ -28,7 +36,7 @@ app.post("/v1/responses", authenticate, async (req, res) => {
           role: "user",
           parts: [
             {
-              text: tenant.systemPrompt + "\n\n" + input,
+              text: textPrefix + input,
             },
           ],
         },

@@ -11,8 +11,9 @@ RUN npm install
 
 # Copy the rest of the application code
 COPY auth.js ./
-COPY model-mapper.js ./
 COPY server.js ./
+COPY tenant-store.js ./
+COPY utils.js ./
 
 # Expose the port the app runs on
 EXPOSE 8080

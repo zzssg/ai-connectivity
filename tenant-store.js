@@ -1,10 +1,12 @@
+import dotenv from "dotenv";
+dotenv.config();
+
 const TENANTS = [
   {
     id: "tenantA",
     apiKeyHash: process.env.TENANT_A_KEY_HASH,
-    allowedModels: ["gpt-4.1", "gpt-4o-mini"],
-    defaultModel: "gpt-4.1",
-    temperature: 0.3,
+    allowedModels: ["gemini-2.5-flash-lite", "gemini-3-flash-lite"],
+    temperature: 0.7,
     systemPrompt: "You are a corporate fintech assistant.",
   },
 ];
