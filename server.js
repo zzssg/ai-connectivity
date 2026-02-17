@@ -23,7 +23,7 @@ app.post("/v1/responses", authenticate, async (req, res) => {
 
     log.info(`Operating with tenant: ${tenant?.id}. Input: ${input}`);
     const vertexModelName = model ? model : process.env.TENANT_DEFAULT_MODEL;
-    log.info(`Using Vertex AI model: ${vertexModelName}`);
+    log.info(`${tenant?.id} >> Using Vertex AI model: ${vertexModelName}`);
     const generativeModel = vertexAI.getGenerativeModel({
       model: vertexModelName,
     });
@@ -46,8 +46,8 @@ app.post("/v1/responses", authenticate, async (req, res) => {
       },
     });
 
-    const text =
-      result.response.candidates[0].content.parts[0].text;
+    const text = result.response.candidates[0].content.parts[0].text;
+    log.info(`${tenant?.id} >> Generated response: ${text}`);
 
     // OpenAI-compatible response
     res.json({
