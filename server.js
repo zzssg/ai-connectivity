@@ -71,7 +71,7 @@ app.post("/v1/responses", authenticate, async (req, res) => {
     });
 
   } catch (err) {
-    console.error(err);
+    log.error(`Error generating response: ${JSON.stringify(err)}`);
     res.status(500).json({ error: err.message });
   }
 });
