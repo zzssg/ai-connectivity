@@ -14,3 +14,7 @@ const TENANTS = [
 export async function getTenantByApiKey(hash) {
   return TENANTS.find(t => t.apiKeyHash === hash);
 }
+
+export function getTenantIds() {
+  return TENANTS.map(t => t.id);
+}
