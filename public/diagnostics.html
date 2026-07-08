@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AI Connectivity — Vertex AI Diagnostics</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #242736;
+    --border: #2e3147;
+    --accent: #6366f1;
+    --accent2: #22d3ee;
+    --accent3: #f59e0b;
+    --accent4: #10b981;
+    --text: #e2e8f0;
+    --muted: #64748b;
+    --danger: #ef4444;
+    --ok: #10b981;
+    --warn: #f59e0b;
+    --radius: 10px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    font-size: 14px;
+  }
+
+  /* ---- header ---- */
+  header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 24px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    flex-wrap: wrap;
+    position: sticky;
+    top: 0;
+    z-index: 20;
+  }
+  header h1 {
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: -0.3px;
+    flex: 1;
+    white-space: nowrap;
+  }
+  header h1 span { color: var(--accent); }
+  header nav a {
+    color: var(--muted);
+    text-decoration: none;
+    font-size: 13px;
+    margin-right: 14px;
+  }
+  header nav a:hover { color: var(--text); }
+  .controls { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  select, input[type="password"], input[type="search"], input[type="text"] {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 13px;
+    outline: none;
+  }
+  select { cursor: pointer; }
+  select:focus, input:focus { border-color: var(--accent); }
+  input[type="password"] { width: 170px; }
+  button {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 6px 14px;
+    font-size: 13px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: opacity .15s;
+  }
+  button:hover { opacity: .85; }
+  button.ghost {
+    background: var(--surface2);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+
+  /* ---- main ---- */
+  main { padding: 20px 24px; max-width: 1400px; margin: 0 auto; }
+
+  #status { font-size: 12px; color: var(--muted); margin-bottom: 16px; min-height: 18px; }
+  #status.error { color: var(--danger); }
+
+  section { margin-bottom: 26px; }
+  section > h2 {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: .8px;
+    color: var(--muted);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  section > h2 .count {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 1px 9px;
+    font-size: 11px;
+    color: var(--text);
+    letter-spacing: 0;
+  }
+
+  /* ---- kpi cards ---- */
+  .kpi-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 12px;
+    margin-bottom: 26px;
+  }
+  .kpi {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+  }
+  .kpi .label {
+    font-size: 11px; text-transform: uppercase; letter-spacing: .7px;
+    color: var(--muted); margin-bottom: 6px;
+  }
+  .kpi .value { font-size: 26px; font-weight: 700; letter-spacing: -1px; line-height: 1; }
+  .kpi .sub { font-size: 11px; color: var(--muted); margin-top: 4px; }
+  .kpi.c1 .value { color: var(--accent); }
+  .kpi.c2 .value { color: var(--accent2); }
+  .kpi.c3 .value { color: var(--accent3); }
+  .kpi.c4 .value { color: var(--accent4); }
+
+  /* ---- info cards ---- */
+  .info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 12px; }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+  }
+  .card h3 {
+    font-size: 13px; font-weight: 600; margin-bottom: 12px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  dl.kv { display: grid; grid-template-columns: minmax(130px, auto) 1fr; gap: 7px 14px; }
+  dl.kv dt { color: var(--muted); font-size: 12px; }
+  dl.kv dd {
+    font-size: 12px; word-break: break-word; text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+  dl.kv dd.mono { font-family: ui-monospace, "SFMono-Regular", Menlo, monospace; font-size: 11.5px; }
+
+  /* ---- badges ---- */
+  .badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    border-radius: 20px; padding: 2px 9px; font-size: 11px; font-weight: 500;
+    border: 1px solid var(--border); background: var(--surface2); color: var(--muted);
+    white-space: nowrap;
+  }
+  .badge .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); }
+  .badge.ok { color: var(--ok); border-color: rgba(16,185,129,.4); }
+  .badge.ok .dot { background: var(--ok); }
+  .badge.warn { color: var(--warn); border-color: rgba(245,158,11,.4); }
+  .badge.warn .dot { background: var(--warn); }
+  .badge.bad { color: var(--danger); border-color: rgba(239,68,68,.4); }
+  .badge.bad .dot { background: var(--danger); }
+
+  /* ---- publisher bars ---- */
+  .pub-list { display: flex; flex-direction: column; gap: 8px; }
+  .pub-row { display: grid; grid-template-columns: 130px 1fr 44px; align-items: center; gap: 12px; }
+  .pub-row .pname { font-size: 13px; text-transform: capitalize; }
+  .pub-bar { height: 10px; background: var(--surface2); border-radius: 6px; overflow: hidden; }
+  .pub-bar > i { display: block; height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2)); }
+  .pub-row .pcount { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
+
+  /* ---- toolbar ---- */
+  .toolbar {
+    display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 12px 14px; margin-bottom: 14px;
+  }
+  .toolbar input[type="search"] { flex: 1; min-width: 180px; }
+  .toolbar .seg { display: inline-flex; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+  .toolbar .seg button {
+    background: var(--surface2); color: var(--muted); border-radius: 0; padding: 6px 12px; font-weight: 500;
+  }
+  .toolbar .seg button.active { background: var(--accent); color: #fff; }
+
+  /* ---- model cards ---- */
+  .model-list { display: flex; flex-direction: column; gap: 8px; }
+  .model {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); overflow: hidden;
+  }
+  .model summary {
+    list-style: none; cursor: pointer; padding: 12px 16px;
+    display: grid; grid-template-columns: 1fr auto; gap: 8px 14px; align-items: center;
+  }
+  .model summary::-webkit-details-marker { display: none; }
+  .model summary:hover { background: var(--surface2); }
+  .model .m-title { font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .model .m-id { font-family: ui-monospace, Menlo, monospace; font-size: 11.5px; color: var(--muted); }
+  .model .m-caps { display: flex; gap: 5px; flex-wrap: wrap; justify-content: flex-end; }
+  .cap-chip {
+    font-size: 10px; padding: 2px 7px; border-radius: 5px;
+    background: rgba(99,102,241,.14); color: #a5b4fc; border: 1px solid rgba(99,102,241,.25);
+    white-space: nowrap;
+  }
+  .model .m-body { padding: 0 16px 16px; border-top: 1px solid var(--border); }
+  .m-body dl.kv { margin-top: 14px; }
+  .modality { display: inline-flex; gap: 5px; flex-wrap: wrap; justify-content: flex-end; }
+  .mtag {
+    font-size: 10.5px; padding: 1px 7px; border-radius: 5px;
+    background: var(--surface2); border: 1px solid var(--border); color: var(--muted);
+  }
+
+  /* ---- matrix table ---- */
+  .table-wrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); }
+  table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  th { text-align: left; padding: 9px 12px; font-size: 10.5px; text-transform: uppercase; letter-spacing: .5px;
+       color: var(--muted); border-bottom: 1px solid var(--border); white-space: nowrap; position: sticky; top: 0; background: var(--surface); }
+  th.rot { text-align: center; }
+  td { padding: 8px 12px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  td.center { text-align: center; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--surface2); }
+  .yes { color: var(--ok); font-weight: 700; }
+  .no { color: #3a3f52; }
+  .mono { font-family: ui-monospace, Menlo, monospace; font-size: 11.5px; }
+
+  /* ---- gemini family groups ---- */
+  .fam-group { margin-bottom: 14px; }
+  .fam-group > h4 {
+    font-size: 13px; font-weight: 600; margin-bottom: 8px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .fam-group > h4 .count { font-size: 11px; color: var(--muted); font-weight: 400; }
+  .chip-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 8px; }
+  .mini {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px;
+  }
+  .mini .mn { font-size: 12.5px; font-weight: 600; }
+  .mini .mm { font-family: ui-monospace, Menlo, monospace; font-size: 11px; color: var(--muted); margin-top: 2px; word-break: break-all; }
+
+  .empty { text-align: center; padding: 28px; color: var(--muted); }
+  .note { font-size: 11px; color: var(--muted); margin-top: 8px; font-style: italic; }
+  .fail-item { border-left: 2px solid var(--danger); padding: 8px 12px; margin-top: 8px; background: var(--surface2); border-radius: 0 6px 6px 0; }
+  .fail-item .fh { font-weight: 600; font-size: 12.5px; margin-bottom: 3px; }
+  .fail-item .fm { font-size: 12px; color: var(--text); }
+  .fail-item .fr { font-size: 11.5px; color: var(--muted); margin-top: 4px; }
+  a.jump { color: var(--accent2); text-decoration: none; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>AI Connectivity &mdash; <span>Vertex AI Diagnostics</span></h1>
+  <nav><a href="/stats/">Usage Stats</a></nav>
+  <div class="controls">
+    <label for="apiKey" style="color:var(--muted);font-size:13px">API Key</label>
+    <input type="password" id="apiKey" placeholder="stats bearer token" />
+    <button id="refreshBtn">Refresh</button>
+    <button id="exportBtn" class="ghost">Export JSON</button>
+  </div>
+</header>
+
+<main>
+  <div id="status">Loading…</div>
+  <div id="content" style="display:none">
+
+    <!-- KPIs -->
+    <div class="kpi-row">
+      <div class="kpi c1"><div class="label">Total Models</div><div class="value" id="kTotal">—</div><div class="sub" id="kTotalSub">discovered in Model Garden</div></div>
+      <div class="kpi c2"><div class="label">Foundation Models</div><div class="value" id="kFound">—</div><div class="sub">generative / embedding / media</div></div>
+      <div class="kpi c3"><div class="label">Publishers</div><div class="value" id="kPub">—</div><div class="sub">with ≥ 1 model</div></div>
+      <div class="kpi c4"><div class="label">Gemini Models</div><div class="value" id="kGem">—</div><div class="sub" id="kGemSub">across families</div></div>
+    </div>
+
+    <!-- Project / Environment -->
+    <section id="sec-project">
+      <h2>Project &amp; Environment</h2>
+      <div class="info-grid">
+        <div class="card">
+          <h3>Project Information</h3>
+          <dl class="kv" id="projKv"></dl>
+        </div>
+        <div class="card">
+          <h3>Environment Information</h3>
+          <dl class="kv" id="envKv"></dl>
+        </div>
+      </div>
+    </section>
+
+    <!-- Vertex status / IAM -->
+    <section id="sec-status">
+      <h2>Vertex AI Status &amp; IAM Diagnostics</h2>
+      <div class="info-grid">
+        <div class="card">
+          <h3>Vertex AI Status <span id="vertexBadge"></span></h3>
+          <dl class="kv" id="vertexKv"></dl>
+          <div id="vertexErrors"></div>
+        </div>
+        <div class="card">
+          <h3>IAM Diagnostics</h3>
+          <dl class="kv" id="iamKv"></dl>
+          <div id="iamFailures"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Publisher overview -->
+    <section id="sec-pub">
+      <h2>Publisher Overview <span class="count" id="pubCount">0</span></h2>
+      <div class="card"><div class="pub-list" id="pubList"></div></div>
+    </section>
+
+    <!-- Model explorer (Foundation Models + Capability Matrix) -->
+    <section id="sec-models">
+      <h2>Foundation Models &amp; Capability Matrix <span class="count" id="modelsCount">0</span></h2>
+      <div class="toolbar">
+        <input type="search" id="search" placeholder="Search by name or model ID…" />
+        <select id="fPub"><option value="">All publishers</option></select>
+        <select id="fCap"><option value="">Any capability</option></select>
+        <select id="fSort">
+          <option value="name">Sort by name</option>
+          <option value="publisher">Sort by publisher</option>
+        </select>
+        <span class="seg">
+          <button data-view="cards" class="active" id="viewCards">Cards</button>
+          <button data-view="matrix" id="viewMatrix">Matrix</button>
+        </span>
+        <button class="ghost" id="expandAll">Expand all</button>
+        <button class="ghost" id="collapseAll">Collapse all</button>
+      </div>
+      <div id="modelsView"></div>
+      <div class="note">Capabilities and modalities are inferred from model identifiers where the Vertex AI API does not expose them explicitly.</div>
+    </section>
+
+    <!-- Gemini models -->
+    <section id="sec-gemini">
+      <h2>Gemini Models <span class="count" id="geminiCount">0</span></h2>
+      <div id="geminiGroups"></div>
+    </section>
+
+    <!-- Embedding models -->
+    <section id="sec-embed">
+      <h2>Embedding Models <span class="count" id="embedCount">0</span></h2>
+      <div class="table-wrap" id="embedWrap"></div>
+    </section>
+
+  </div>
+</main>
+
+<script>
+const $ = id => document.getElementById(id);
+let DATA = null;
+
+const CAP_LABELS = {
+  chat: "Chat",
+  textGeneration: "Text",
+  embeddings: "Embeddings",
+  vision: "Vision",
+  imageGeneration: "Image Gen",
+  audio: "Audio",
+  video: "Video",
+  toolCalling: "Tool Calling",
+  functionCalling: "Function Calling",
+  structuredOutput: "Structured",
+  contextCache: "Context Cache",
+  thinking: "Thinking",
+};
+const CAP_KEYS = Object.keys(CAP_LABELS);
+
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+// ---- Load stored key ----
+$('apiKey').value = sessionStorage.getItem('statsKey') || '';
+
+// ---- Fetch ----
+async function fetchData() {
+  const key = $('apiKey').value.trim();
+  sessionStorage.setItem('statsKey', key);
+  const status = $('status');
+  status.className = '';
+  status.textContent = 'Collecting diagnostics… (probing Vertex AI Model Garden)';
+  const headers = key ? { Authorization: `Bearer ${key}` } : {};
+  try {
+    const res = await fetch('/stats/api/diagnostics', { headers });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: res.statusText }));
+      throw new Error(err.error || res.statusText);
+    }
+    DATA = await res.json();
+    render();
+    $('content').style.display = 'block';
+    status.textContent = `Last collected: ${new Date(DATA.generatedAt).toLocaleString()} · ${DATA.models.length} models`;
+  } catch (e) {
+    status.className = 'error';
+    status.textContent = `Error: ${e.message}`;
+    $('content').style.display = 'none';
+  }
+}
+
+// ---- KV helpers ----
+function kv(pairs) {
+  return pairs.map(([k, v, mono]) =>
+    `<dt>${esc(k)}</dt><dd class="${mono ? 'mono' : ''}">${v}</dd>`).join('');
+}
+function badge(cls, text) {
+  return `<span class="badge ${cls}"><span class="dot"></span>${esc(text)}</span>`;
+}
+function bool(v) { return v ? badge('ok', 'Yes') : badge('bad', 'No'); }
+
+// ---- Render sections ----
+function renderProject() {
+  const p = DATA.project;
+  $('projKv').innerHTML = kv([
+    ['Project ID', esc(p.projectId), true],
+    ['Region', esc(p.region), true],
+    ['Service Account', esc(p.serviceAccount), true],
+    ['Auth Method', esc(p.authMethod)],
+    ['Runtime', esc(p.runtime)],
+    ['Node.js', esc(p.nodeVersion), true],
+  ]);
+  const e = DATA.environment;
+  $('envKv').innerHTML = kv([
+    ['Runtime', esc(e.runtime)],
+    ['Node.js', esc(e.nodeVersion), true],
+    ['Platform', esc(e.platform), true],
+    ['Cloud Run Service', esc(e.cloudRunService || '—'), true],
+    ['Cloud Run Revision', esc(e.cloudRunRevision || '—'), true],
+    ['Project ID', esc(e.projectId), true],
+    ['Region', esc(e.region), true],
+  ]);
+}
+
+function renderStatus() {
+  const v = DATA.vertex;
+  const cls = v.available ? (v.modelDiscovery === 'ok' ? 'ok' : 'warn') : 'bad';
+  $('vertexBadge').innerHTML = badge(cls, v.available ? 'Available' : 'Unavailable');
+  const discBadge = { ok: badge('ok', 'OK'), partial: badge('warn', 'Partial'), failed: badge('bad', 'Failed') }[v.modelDiscovery];
+  $('vertexKv').innerHTML = kv([
+    ['Availability', v.available ? badge('ok', 'Reachable') : badge('bad', 'Unreachable')],
+    ['Model Discovery', discBadge],
+    ['API Endpoint', esc(v.apiEndpoint), true],
+    ['Discovery Errors', String(v.errors.length)],
+  ]);
+  $('vertexErrors').innerHTML = v.errors.length
+    ? v.errors.map(er => `<div class="fail-item"><div class="fh">${esc(er.publisher)} · HTTP ${esc(er.status ?? '—')} ${esc(er.code || '')}</div><div class="fm">${esc(er.message)}</div></div>`).join('')
+    : '';
+
+  const iam = DATA.iam;
+  $('iamKv').innerHTML = kv([
+    ['Access Vertex AI', bool(iam.canAccessVertexAI)],
+    ['List Publisher Models', bool(iam.canListPublisherModels)],
+    ['Read Model Metadata', bool(iam.canReadModelMetadata)],
+  ]);
+  $('iamFailures').innerHTML = iam.failures.length
+    ? iam.failures.map(f => `<div class="fail-item">
+        <div class="fh">${esc(f.check)} · HTTP ${esc(f.status ?? '—')} ${esc(f.code || '')}</div>
+        <div class="fm">${esc(f.message)}</div>
+        <div class="fr">↳ ${esc(f.remediation)}</div>
+      </div>`).join('')
+    : `<div class="note">No access failures detected.</div>`;
+}
+
+function renderKpis() {
+  $('kTotal').textContent = DATA.models.length;
+  const found = DATA.models.filter(m => m.isFoundation).length;
+  $('kFound').textContent = found;
+  $('kTotalSub').textContent = `${DATA.models.length - found} specialized / task models`;
+  $('kPub').textContent = DATA.publishers.length;
+  const gem = DATA.models.filter(m => m.isGemini);
+  $('kGem').textContent = gem.length;
+  const fams = new Set(gem.map(m => m.family).filter(Boolean));
+  $('kGemSub').textContent = `${fams.size} families`;
+}
+
+function renderPublishers() {
+  const pubs = DATA.publishers;
+  $('pubCount').textContent = pubs.length;
+  const max = Math.max(1, ...pubs.map(p => p.count));
+  $('pubList').innerHTML = pubs.map(p => `
+    <div class="pub-row">
+      <span class="pname">${esc(p.publisher)}</span>
+      <span class="pub-bar"><i style="width:${(p.count / max * 100).toFixed(1)}%"></i></span>
+      <span class="pcount">${p.count}</span>
+    </div>`).join('');
+  // populate publisher filter
+  const sel = $('fPub');
+  while (sel.options.length > 1) sel.remove(1);
+  pubs.forEach(p => sel.add(new Option(p.publisher, p.publisher)));
+  // capability filter
+  const csel = $('fCap');
+  while (csel.options.length > 1) csel.remove(1);
+  CAP_KEYS.forEach(k => csel.add(new Option(CAP_LABELS[k], k)));
+}
+
+// ---- Model explorer ----
+let currentView = 'cards';
+
+function filteredModels() {
+  const q = $('search').value.trim().toLowerCase();
+  const pub = $('fPub').value;
+  const cap = $('fCap').value;
+  const sort = $('fSort').value;
+  let list = DATA.models.filter(m => {
+    if (pub && m.publisher !== pub) return false;
+    if (cap && !m.capabilities[cap]) return false;
+    if (q && !(m.modelId.toLowerCase().includes(q) || (m.displayName || '').toLowerCase().includes(q))) return false;
+    return true;
+  });
+  list.sort((a, b) => {
+    if (sort === 'publisher') {
+      return a.publisher.localeCompare(b.publisher) || a.modelId.localeCompare(b.modelId);
+    }
+    return (a.displayName || a.modelId).localeCompare(b.displayName || b.modelId);
+  });
+  return list;
+}
+
+function capChips(m) {
+  return CAP_KEYS.filter(k => m.capabilities[k])
+    .map(k => `<span class="cap-chip">${CAP_LABELS[k]}</span>`).join('');
+}
+
+function renderCards(list) {
+  if (!list.length) return `<div class="empty">No models match the current filters.</div>`;
+  return `<div class="model-list">` + list.map(m => `
+    <details class="model">
+      <summary>
+        <div>
+          <div class="m-title">${esc(m.displayName)} <span class="badge">${esc(m.publisher)}</span>${m.launchStage ? `<span class="badge">${esc(prettyStage(m.launchStage))}</span>` : ''}</div>
+          <div class="m-id">${esc(m.modelId)}</div>
+        </div>
+        <div class="m-caps">${capChips(m) || '<span class="cap-chip" style="opacity:.5">no generative caps</span>'}</div>
+      </summary>
+      <div class="m-body">
+        <dl class="kv">
+          <dt>Display Name</dt><dd>${esc(m.displayName)}</dd>
+          <dt>Model ID</dt><dd class="mono">${esc(m.modelId)}</dd>
+          <dt>Publisher</dt><dd>${esc(m.publisher)}</dd>
+          <dt>Version</dt><dd class="mono">${esc(m.version || '—')}</dd>
+          <dt>Category</dt><dd>${esc(m.category)}</dd>
+          <dt>Launch Stage</dt><dd>${esc(m.launchStage ? prettyStage(m.launchStage) : '—')}</dd>
+          <dt>Supported Methods</dt><dd class="modality">${(m.supportedMethods.length ? m.supportedMethods : ['—']).map(x => `<span class="mtag">${esc(x)}</span>`).join('')}</dd>
+          <dt>Input Modalities</dt><dd class="modality">${(m.inputModalities.length ? m.inputModalities : ['—']).map(x => `<span class="mtag">${esc(x)}</span>`).join('')}</dd>
+          <dt>Output Modalities</dt><dd class="modality">${(m.outputModalities.length ? m.outputModalities : ['—']).map(x => `<span class="mtag">${esc(x)}</span>`).join('')}</dd>
+          ${m.isEmbedding && m.embeddingDimensions ? `<dt>Embedding Dims</dt><dd class="mono">${m.embeddingDimensions}</dd>` : ''}
+        </dl>
+      </div>
+    </details>`).join('') + `</div>`;
+}
+
+function renderMatrix(list) {
+  if (!list.length) return `<div class="empty">No models match the current filters.</div>`;
+  const head = `<tr><th>Model</th><th>Publisher</th>` +
+    CAP_KEYS.map(k => `<th class="rot">${CAP_LABELS[k]}</th>`).join('') + `</tr>`;
+  const rows = list.map(m => `<tr>
+      <td><div>${esc(m.displayName)}</div><div class="mono" style="color:var(--muted)">${esc(m.modelId)}</div></td>
+      <td>${esc(m.publisher)}</td>
+      ${CAP_KEYS.map(k => `<td class="center ${m.capabilities[k] ? 'yes' : 'no'}">${m.capabilities[k] ? '✓' : '·'}</td>`).join('')}
+    </tr>`).join('');
+  return `<div class="table-wrap"><table><thead>${head}</thead><tbody>${rows}</tbody></table></div>`;
+}
+
+function prettyStage(s) {
+  return String(s).replace(/^(GA|PUBLIC_)?/, '').replace(/_/g, ' ').toLowerCase()
+    .replace(/\b\w/g, c => c.toUpperCase()) || s;
+}
+
+function renderModels() {
+  const list = filteredModels();
+  $('modelsCount').textContent = list.length;
+  $('modelsView').innerHTML = currentView === 'cards' ? renderCards(list) : renderMatrix(list);
+}
+
+// ---- Gemini section ----
+function renderGemini() {
+  const gem = DATA.models.filter(m => m.isGemini);
+  $('geminiCount').textContent = gem.length;
+  const groups = {};
+  gem.forEach(m => {
+    const fam = m.family || 'Gemini (other)';
+    (groups[fam] = groups[fam] || []).push(m);
+  });
+  const order = Object.keys(groups).sort();
+  $('geminiGroups').innerHTML = order.map(fam => `
+    <div class="fam-group">
+      <h4>${esc(fam)} <span class="count">${groups[fam].length} model${groups[fam].length > 1 ? 's' : ''}</span></h4>
+      <div class="chip-grid">
+        ${groups[fam].sort((a,b)=>a.modelId.localeCompare(b.modelId)).map(m => `
+          <div class="mini">
+            <div class="mn">${esc(m.displayName)}</div>
+            <div class="mm">${esc(m.modelId)}</div>
+          </div>`).join('')}
+      </div>
+    </div>`).join('') || `<div class="empty">No Gemini models discovered.</div>`;
+}
+
+// ---- Embedding section ----
+function renderEmbeddings() {
+  const emb = DATA.models.filter(m => m.isEmbedding).sort((a,b)=>a.modelId.localeCompare(b.modelId));
+  $('embedCount').textContent = emb.length;
+  if (!emb.length) { $('embedWrap').innerHTML = `<div class="empty">No embedding models discovered.</div>`; return; }
+  const rows = emb.map(m => `<tr>
+      <td>${esc(m.displayName)}</td>
+      <td class="mono">${esc(m.modelId)}</td>
+      <td>${esc(m.publisher)}</td>
+      <td class="center">${m.embeddingDimensions ?? '—'}</td>
+      <td><div class="modality" style="justify-content:flex-start">${(m.taskTypes.length ? m.taskTypes : ['—']).map(t => `<span class="mtag">${esc(t)}</span>`).join('')}</div></td>
+    </tr>`).join('');
+  $('embedWrap').innerHTML = `<table>
+    <thead><tr><th>Name</th><th>Model ID</th><th>Publisher</th><th class="center">Dimensions</th><th>Supported Task Types</th></tr></thead>
+    <tbody>${rows}</tbody></table>`;
+}
+
+function render() {
+  renderKpis();
+  renderProject();
+  renderStatus();
+  renderPublishers();
+  renderModels();
+  renderGemini();
+  renderEmbeddings();
+}
+
+// ---- Export ----
+function exportJson() {
+  if (!DATA) return;
+  const blob = new Blob([JSON.stringify(DATA, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `vertex-diagnostics-${new Date().toISOString().replace(/[:.]/g, '-')}.json`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+// ---- Events ----
+$('refreshBtn').addEventListener('click', fetchData);
+$('exportBtn').addEventListener('click', exportJson);
+$('apiKey').addEventListener('keydown', e => { if (e.key === 'Enter') fetchData(); });
+['search', 'fPub', 'fCap', 'fSort'].forEach(id => {
+  $(id).addEventListener('input', renderModels);
+  $(id).addEventListener('change', renderModels);
+});
+$('viewCards').addEventListener('click', () => setView('cards'));
+$('viewMatrix').addEventListener('click', () => setView('matrix'));
+$('expandAll').addEventListener('click', () => document.querySelectorAll('.model').forEach(d => d.open = true));
+$('collapseAll').addEventListener('click', () => document.querySelectorAll('.model').forEach(d => d.open = false));
+
+function setView(v) {
+  currentView = v;
+  $('viewCards').classList.toggle('active', v === 'cards');
+  $('viewMatrix').classList.toggle('active', v === 'matrix');
+  $('expandAll').style.display = v === 'cards' ? '' : 'none';
+  $('collapseAll').style.display = v === 'cards' ? '' : 'none';
+  renderModels();
+}
+
+// ---- Init ----
+fetchData();
+</script>
+</body>
+</html>

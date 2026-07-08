@@ -10,6 +10,7 @@ import { GoogleGenAI } from "@google/genai";
 import { authenticate } from "./auth.js";
 import { recordStat, getAllStats } from "./stats-store.js";
 import { getTenantIds } from "./tenant-store.js";
+import { collectDiagnostics } from "./vertex-diagnostics.js";
 
 const log = createLogger(import.meta.url);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -49,6 +50,21 @@ app.get("/stats/api/data", authenticateStats, async (req, res) => {
     res.json(data);
   } catch (err) {
     log.error(`Error fetching stats: ${err.message}`);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * Diagnostics API: probes Vertex AI availability, discovers foundation models
+ * across publishers, and reports project / IAM / environment info as JSON.
+ * Consumed by the diagnostics dashboard at /stats/diagnostics.html.
+ */
+app.get("/stats/api/diagnostics", authenticateStats, async (req, res) => {
+  try {
+    const data = await collectDiagnostics();
+    res.json(data);
+  } catch (err) {
+    log.error(`Error collecting diagnostics: ${err.message}`);
     res.status(500).json({ error: err.message });
   }
 });
