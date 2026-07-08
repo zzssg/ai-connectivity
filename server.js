@@ -1,16 +1,22 @@
 import dotenv from "dotenv";
 dotenv.config();
 
+import path from "path";
+import { fileURLToPath } from "url";
 import express from "express";
 import { createLogger } from "./utils.js";
 import { VertexAI } from "@google-cloud/vertexai";
 import { GoogleGenAI } from "@google/genai";
 import { authenticate } from "./auth.js";
+import { recordStat, getAllStats } from "./stats-store.js";
+import { getTenantIds } from "./tenant-store.js";
 
 const log = createLogger(import.meta.url);
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const app = express();
 app.use(express.json());
+app.use("/stats", express.static(path.join(__dirname, "public")));
 
 const vertexAI = new VertexAI({
   project: process.env.GCP_PROJECT_ID,
@@ -21,6 +27,30 @@ const ai = new GoogleGenAI({
   vertexai: true,
   project: process.env.GCP_PROJECT_ID,
   location: process.env.GCP_REGION
+});
+
+function authenticateStats(req, res, next) {
+  const statsKey = process.env.STATS_API_KEY;
+  if (!statsKey) return next(); // stats auth disabled if key not configured
+  const header = req.headers["authorization"];
+  if (!header?.startsWith("Bearer ") || header.substring(7) !== statsKey) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+  next();
+}
+
+/**
+ * Stats API: returns aggregated usage data for all tenants.
+ */
+app.get("/stats/api/data", authenticateStats, async (req, res) => {
+  try {
+    const days = Math.min(parseInt(req.query.days) || 30, 90);
+    const data = await getAllStats(getTenantIds(), days);
+    res.json(data);
+  } catch (err) {
+    log.error(`Error fetching stats: ${err.message}`);
+    res.status(500).json({ error: err.message });
+  }
 });
 
 /**
@@ -65,6 +95,10 @@ app.post("/v1/responses", authenticate, async (req, res) => {
 
     const text = result.response.candidates[0].content.parts[0].text;
     log.info(`${tenant?.id} >> Generated response: ${text}`);
+
+    const outputTokens = result.response.usageMetadata?.candidatesTokenCount ?? 0;
+    recordStat(tenant.id, "responses", (textPrefix + input).length, outputTokens)
+      .catch(() => {});
 
     // OpenAI-compatible response
     res.json({
@@ -133,14 +167,17 @@ app.post("/v1/embeddings", authenticate, async (req, res) => {
       }
     });
 
-    res.json({ 
-      object: "list", 
-      data, 
+    recordStat(tenant.id, "embeddings", input.length, promptTokens)
+      .catch(() => {});
+
+    res.json({
+      object: "list",
+      data,
       model: vertexModelName,
       "usage": {
-        "prompt_tokens": promptTokens > 0 ? promptTokens : input.length, 
+        "prompt_tokens": promptTokens > 0 ? promptTokens : input.length,
         "total_tokens": 0
-      } 
+      }
     });
   } catch (err) {
     log.error(`Error generating embeddings: ${JSON.stringify(err)}`);

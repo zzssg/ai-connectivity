@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AI Connectivity — Usage Stats</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #242736;
+    --border: #2e3147;
+    --accent: #6366f1;
+    --accent2: #22d3ee;
+    --accent3: #f59e0b;
+    --accent4: #10b981;
+    --text: #e2e8f0;
+    --muted: #64748b;
+    --danger: #ef4444;
+    --radius: 10px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    font-size: 14px;
+  }
+
+  /* ---- header ---- */
+  header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 24px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    flex-wrap: wrap;
+  }
+  header h1 {
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: -0.3px;
+    flex: 1;
+    white-space: nowrap;
+  }
+  header h1 span { color: var(--accent); }
+  .controls { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  select, input[type="password"] {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 13px;
+    outline: none;
+    cursor: pointer;
+  }
+  select:focus, input[type="password"]:focus { border-color: var(--accent); }
+  input[type="password"] { width: 180px; }
+  button {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 6px 14px;
+    font-size: 13px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: opacity .15s;
+  }
+  button:hover { opacity: .85; }
+
+  /* ---- main ---- */
+  main { padding: 20px 24px; max-width: 1400px; margin: 0 auto; }
+
+  /* ---- auth banner ---- */
+  #auth-banner {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    margin-bottom: 20px;
+  }
+  #auth-banner label { color: var(--muted); font-size: 13px; white-space: nowrap; }
+  #auth-banner input { flex: 1; max-width: 260px; }
+
+  /* ---- status bar ---- */
+  #status {
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 16px;
+    min-height: 18px;
+  }
+  #status.error { color: var(--danger); }
+
+  /* ---- kpi cards ---- */
+  .kpi-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .kpi {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+  }
+  .kpi .label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .7px;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+  .kpi .value {
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: -1px;
+    line-height: 1;
+  }
+  .kpi .sub {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+  .kpi.c1 .value { color: var(--accent); }
+  .kpi.c2 .value { color: var(--accent2); }
+  .kpi.c3 .value { color: var(--accent3); }
+  .kpi.c4 .value { color: var(--accent4); }
+
+  /* ---- charts ---- */
+  .charts-row {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  @media (max-width: 720px) { .charts-row { grid-template-columns: 1fr; } }
+  .chart-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+  }
+  .chart-card h2 {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: .7px;
+    color: var(--muted);
+    margin-bottom: 14px;
+  }
+  .chart-wrap { position: relative; }
+
+  /* ---- table ---- */
+  .table-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  .table-card h2 {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: .7px;
+    color: var(--muted);
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  th {
+    text-align: left;
+    padding: 8px 16px;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  td {
+    padding: 8px 16px;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--surface2); }
+  .num { text-align: right; font-variant-numeric: tabular-nums; }
+  .tag {
+    display: inline-block;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 1px 7px;
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .empty { text-align: center; padding: 32px; color: var(--muted); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>AI Connectivity &mdash; <span>Usage Stats</span></h1>
+  <div class="controls">
+    <label for="apiKey" style="color:var(--muted);font-size:13px">API Key</label>
+    <input type="password" id="apiKey" placeholder="stats bearer token" />
+    <select id="tenantSel"><option value="__all__">All Tenants</option></select>
+    <select id="daysSel">
+      <option value="7">Last 7 days</option>
+      <option value="30" selected>Last 30 days</option>
+      <option value="60">Last 60 days</option>
+      <option value="90">Last 90 days</option>
+    </select>
+    <button id="refreshBtn">Refresh</button>
+  </div>
+</header>
+
+<main>
+  <div id="status">Loading…</div>
+
+  <div class="kpi-row">
+    <div class="kpi c1"><div class="label">Requests</div><div class="value" id="kTotal">—</div><div class="sub" id="kTotalSub">all time in range</div></div>
+    <div class="kpi c2"><div class="label">Output Tokens</div><div class="value" id="kTokens">—</div><div class="sub" id="kTokensSub">total returned</div></div>
+    <div class="kpi c3"><div class="label">Avg Input Chars</div><div class="value" id="kAvgChars">—</div><div class="sub">per request</div></div>
+    <div class="kpi c4"><div class="label">Active Days</div><div class="value" id="kDays">—</div><div class="sub" id="kDaysSub">with ≥ 1 request</div></div>
+  </div>
+
+  <div class="charts-row">
+    <div class="chart-card">
+      <h2>Requests &amp; Tokens per Day</h2>
+      <div class="chart-wrap" style="height:220px"><canvas id="timeChart"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <h2>By Endpoint</h2>
+      <div class="chart-wrap" style="height:220px"><canvas id="epChart"></canvas></div>
+    </div>
+  </div>
+
+  <div class="table-card">
+    <h2>Daily Breakdown</h2>
+    <div id="tableWrap"></div>
+  </div>
+</main>
+
+<script>
+let rawData = null;
+let timeChart = null;
+let epChart = null;
+
+const $ = id => document.getElementById(id);
+
+// ---- Load stored key ----
+$('apiKey').value = sessionStorage.getItem('statsKey') || '';
+
+// ---- Fetch ----
+async function fetchData() {
+  const key = $('apiKey').value.trim();
+  sessionStorage.setItem('statsKey', key);
+  const days = $('daysSel').value;
+  const status = $('status');
+  status.className = '';
+  status.textContent = 'Loading…';
+
+  const headers = key ? { Authorization: `Bearer ${key}` } : {};
+  try {
+    const res = await fetch(`/stats/api/data?days=${days}`, { headers });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: res.statusText }));
+      throw new Error(err.error || res.statusText);
+    }
+    rawData = await res.json();
+    populateTenantSelector(rawData.tenants);
+    render();
+    status.textContent = `Last updated: ${new Date().toLocaleTimeString()}`;
+  } catch (e) {
+    status.className = 'error';
+    status.textContent = `Error: ${e.message}`;
+  }
+}
+
+function populateTenantSelector(tenants) {
+  const sel = $('tenantSel');
+  const cur = sel.value;
+  // keep __all__ option
+  while (sel.options.length > 1) sel.remove(1);
+  tenants.forEach(t => {
+    const o = new Option(t, t);
+    sel.add(o);
+  });
+  if ([...sel.options].some(o => o.value === cur)) sel.value = cur;
+}
+
+// ---- Aggregate ----
+function getRows() {
+  if (!rawData) return [];
+  const tenant = $('tenantSel').value;
+  const tenants = tenant === '__all__' ? rawData.tenants : [tenant];
+  const merged = {};
+  tenants.forEach(tid => {
+    (rawData.stats[tid] || []).forEach(row => {
+      if (!merged[row.date]) {
+        merged[row.date] = { date: row.date, requestCount: 0, totalInputChars: 0, totalOutputTokens: 0, byEndpoint: {} };
+      }
+      const m = merged[row.date];
+      m.requestCount += row.requestCount;
+      m.totalInputChars += row.totalInputChars;
+      m.totalOutputTokens += row.totalOutputTokens;
+      Object.entries(row.byEndpoint || {}).forEach(([ep, v]) => {
+        const me = m.byEndpoint[ep] ?? { count: 0, inputChars: 0, outputTokens: 0 };
+        me.count += v.count;
+        me.inputChars += v.inputChars;
+        me.outputTokens += v.outputTokens;
+        m.byEndpoint[ep] = me;
+      });
+    });
+  });
+  return Object.values(merged).sort((a, b) => a.date.localeCompare(b.date));
+}
+
+// ---- KPI ----
+function fmt(n) {
+  if (n >= 1e6) return (n / 1e6).toFixed(1) + 'M';
+  if (n >= 1e3) return (n / 1e3).toFixed(1) + 'K';
+  return String(n);
+}
+
+function updateKPIs(rows) {
+  const total = rows.reduce((s, r) => s + r.requestCount, 0);
+  const tokens = rows.reduce((s, r) => s + r.totalOutputTokens, 0);
+  const chars = rows.reduce((s, r) => s + r.totalInputChars, 0);
+  const activeDays = rows.filter(r => r.requestCount > 0).length;
+  $('kTotal').textContent = fmt(total);
+  $('kTokens').textContent = fmt(tokens);
+  $('kAvgChars').textContent = total > 0 ? fmt(Math.round(chars / total)) : '—';
+  $('kDays').textContent = activeDays;
+}
+
+// ---- Charts ----
+const CHART_DEFAULTS = {
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: { legend: { labels: { color: '#94a3b8', font: { size: 11 } } } },
+};
+
+function updateTimeChart(rows) {
+  const labels = rows.map(r => r.date.slice(5)); // MM-DD
+  const reqData = rows.map(r => r.requestCount);
+  const tokData = rows.map(r => r.totalOutputTokens);
+
+  if (timeChart) timeChart.destroy();
+  timeChart = new Chart($('timeChart'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'Requests',
+          data: reqData,
+          backgroundColor: 'rgba(99,102,241,.7)',
+          borderRadius: 3,
+          yAxisID: 'y',
+        },
+        {
+          label: 'Output Tokens',
+          data: tokData,
+          type: 'line',
+          borderColor: '#22d3ee',
+          backgroundColor: 'rgba(34,211,238,.1)',
+          borderWidth: 2,
+          pointRadius: 2,
+          tension: 0.3,
+          fill: true,
+          yAxisID: 'y2',
+        },
+      ],
+    },
+    options: {
+      ...CHART_DEFAULTS,
+      scales: {
+        x: { ticks: { color: '#475569', font: { size: 10 }, maxTicksLimit: 14 }, grid: { color: '#1e2235' } },
+        y: { ticks: { color: '#475569', font: { size: 10 } }, grid: { color: '#1e2235' }, title: { display: true, text: 'Requests', color: '#475569', font: { size: 10 } } },
+        y2: { position: 'right', ticks: { color: '#475569', font: { size: 10 } }, grid: { drawOnChartArea: false }, title: { display: true, text: 'Tokens', color: '#475569', font: { size: 10 } } },
+      },
+    },
+  });
+}
+
+function updateEpChart(rows) {
+  const epMap = {};
+  rows.forEach(r => {
+    Object.entries(r.byEndpoint || {}).forEach(([ep, v]) => {
+      epMap[ep] = (epMap[ep] || 0) + v.count;
+    });
+  });
+
+  const labels = Object.keys(epMap);
+  const values = Object.values(epMap);
+  const colors = ['rgba(99,102,241,.8)', 'rgba(34,211,238,.8)', 'rgba(245,158,11,.8)', 'rgba(16,185,129,.8)'];
+
+  if (epChart) epChart.destroy();
+  if (labels.length === 0) {
+    $('epChart').getContext('2d').clearRect(0, 0, 9999, 9999);
+    return;
+  }
+  epChart = new Chart($('epChart'), {
+    type: 'doughnut',
+    data: {
+      labels,
+      datasets: [{ data: values, backgroundColor: colors, borderWidth: 0, hoverOffset: 6 }],
+    },
+    options: {
+      ...CHART_DEFAULTS,
+      cutout: '65%',
+      plugins: {
+        ...CHART_DEFAULTS.plugins,
+        legend: { position: 'bottom', labels: { color: '#94a3b8', font: { size: 11 }, padding: 12 } },
+      },
+    },
+  });
+}
+
+// ---- Table ----
+function updateTable(rows) {
+  const wrap = $('tableWrap');
+  if (rows.length === 0) {
+    wrap.innerHTML = '<div class="empty">No data in this range</div>';
+    return;
+  }
+  const sorted = [...rows].reverse(); // newest first
+  const epSet = new Set();
+  sorted.forEach(r => Object.keys(r.byEndpoint || {}).forEach(ep => epSet.add(ep)));
+  const eps = [...epSet];
+
+  const epHeaders = eps.map(ep => `<th class="num">${ep}</th>`).join('');
+  const rows_html = sorted.map(r => {
+    const epCells = eps.map(ep => `<td class="num">${r.byEndpoint?.[ep]?.count ?? 0}</td>`).join('');
+    return `<tr>
+      <td>${r.date}</td>
+      <td class="num">${r.requestCount}</td>
+      <td class="num">${r.totalOutputTokens.toLocaleString()}</td>
+      <td class="num">${r.requestCount > 0 ? Math.round(r.totalInputChars / r.requestCount).toLocaleString() : '—'}</td>
+      ${epCells}
+    </tr>`;
+  }).join('');
+
+  wrap.innerHTML = `<table>
+    <thead><tr>
+      <th>Date</th>
+      <th class="num">Requests</th>
+      <th class="num">Output Tokens</th>
+      <th class="num">Avg Input Chars</th>
+      ${epHeaders}
+    </tr></thead>
+    <tbody>${rows_html}</tbody>
+  </table>`;
+}
+
+// ---- Render ----
+function render() {
+  const rows = getRows();
+  updateKPIs(rows);
+  updateTimeChart(rows);
+  updateEpChart(rows);
+  updateTable(rows);
+}
+
+// ---- Events ----
+$('refreshBtn').addEventListener('click', fetchData);
+$('tenantSel').addEventListener('change', render);
+$('daysSel').addEventListener('change', fetchData);
+$('apiKey').addEventListener('keydown', e => { if (e.key === 'Enter') fetchData(); });
+
+// ---- Init ----
+fetchData();
+</script>
+</body>
+</html>
